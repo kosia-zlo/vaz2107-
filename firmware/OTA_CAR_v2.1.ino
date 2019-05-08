@@ -16,42 +16,29 @@
   Преподаватель               : Митина Е.Н. 
 
 */
-
-
-
 //************************************************БИБЛИОТЕКА***************************
-
 #include <OneWire.h>
 #include <Servo2.h>
 #include <EEPROM.h>
-
-
 //********************************************************НАСТРОЙКИ**************************
 #define BT         1 // 0 для выключения. 1 для включения. ВКЛЮЧИТЬ BLUETOOTH
-#define PR         1 // 0 для выключения. 1 для включения. ВКЛЮЧИТЬ РЕЖИМ ПРОВЕРКИ
+#define PR         0 // 0 для выключения. 1 для включения. ВКЛЮЧИТЬ РЕЖИМ ПРОВЕРКИ
 #define OBM        1 // 0 для выключения. 1 для включения. ВКЛЮЧИТЬ ОБМАНКУ
-
-
-
 //********************************************************ПОДКЛЮЧЁНИЯ***********************
 OneWire  ds(2); // Подключение датчика температуры
 int zagig = 3 ; // Зажигание 
 int starter = 4 ; // Стартер 
-int DverZad = 5; //
+int DverZad = 5; // Задняя дверь
 int bug = 6; // Багажник 
 int Ruch = 7 ; // Ручник 
 int skor = 8; // Скорость 
 int sgn = 9; // Сигнализация
 int gab = 10; // Габариты
-int avar = 11; // Аварийка
+int dov = 12; // Доводчик
+int avar = 13; // Аварийка
 #define tahometr A1 // Датчик оборотов к аналогову входу = 1;
-
-
 //********************************************************ИМЕНА ПОДКЛЮЧЕНИЙ*************************
 Servo2 servo;
-
-
-
 //********************************************************ПРОВЕРЯШКИ*********************
 int val; // Значение BT 
 int but = 1; // Значение доводчика
@@ -70,23 +57,19 @@ pinMode(Ruch, INPUT) ;
 pinMode(skor, INPUT) ; 
 pinMode(tahometr, INPUT); // конфигурируем оборотов как вход
 pinMode(sgn, INPUT); 
-pinMode(13, OUTPUT); 
-pinMode(12, OUTPUT);
+pinMode(avar, OUTPUT); 
+pinMode(gab, OUTPUT);
+pinMode(dov, OUTPUT);
 pinMode(A0, INPUT); 
 pinMode(A4, OUTPUT);// пин A0 будет входом 
-servo.attach(12);
-Serial.begin(9600);  
-}
-
+servo.attach(A4);
+Serial.begin(9600); }
 void loop() {
  if (BT == 1){
-bluetooth();
-//bluetooth_data(); 
-}
-}
+bluetooth();  }}
 void bluetooth(){ 
 if (Serial.available()){ 
-val = Serial.read(); 
+val = Serial.read();
 if (val == 'd') 
 {dovod();} 
 if (val == 't') 
@@ -116,7 +99,6 @@ void proverka(){
   if(PR == 1){
 bluetooth();
 Serial.println("Проверка bluetooth завершена"); 
-//bluetooth();
 dovod();
 delay(500);
 dovod();
@@ -139,9 +121,7 @@ Serial.println("Проверка багажника завершена");
 gabar();
 Serial.println("Проверка габаритов завершена");
 avar_on();
-Serial.println("Проверка аварийки завершена"); 
-}
-}
+Serial.println("Проверка аварийки завершена"); }}
 //------------------------------------------------------ДОВОДЧИК СТЁКЛ------------------— 
 void dovod() { 
   switch(but){ 
@@ -157,24 +137,22 @@ N = analogRead (tahometr); // считываем данные с датчика 
 oborots = N*20;}
 if (oborots<100){ // если обороты равны 0
 if (Ruch == 1 && sgn == 1){  
-digitalWrite(13, 1), 
+digitalWrite(dov, 1), 
 Serial.println("Cтёкла закрыты"),
-delay(5000);} }
+delay(5000);
+digitalWrite(dov, 0);
+} }
 but = 2;
 break;
 case 2:
 Serial.println("Доводчик стёкл выключён");
 Serial.println("dov_off");   
 but = 1;
-break;
-}
-}
+break;}}
 // —------------------------------------------------АВТОЗАПУСК-----------------
 void zapusk(){ 
  switch(but_z){
-  case 1 : 
-  skor = 0; 
-  Ruch = 1;
+  case 1 :  skor = 0; Ruch = 1;
 //boolean Ruch = digitalRead(4); 
 //boolean skor = digitalRead(6); 
 if( skor == 0 && Ruch == 1 ){ 
@@ -194,28 +172,21 @@ if (oborots>900){ // если обороты более 900 тогда
 STATUS=true; // присваем переменной СТАТУС значение ИСТИНА 
 Serial.println("Двигатель запущён"); 
 but_z = 2;
-break; // выходим из цикла for 
-
-} 
+break; } // выходим из цикла for  
 else { 
 delay(2000), 
-Serial.print("SYSTEM pop" + x );} 
-} 
-}
+Serial.print("SYSTEM pop" + x );} } }
 break;
 case 2:
 digitalWrite(zagig, 0);
 Serial.println("Двигатель остановлен");
 Serial.println(oborots);
 but_z = 1;
-break;
-}
-}
+break;}}
 // —------------------------------------------------ЦЕНТРАЛЬНЫЙ ЗАМОК------------------— 
 void centerzamok(){ 
  switch(but_c){ 
  case 1 : 
- 
  Serial.println("Функция центрально замка активирована"),
  digitalWrite(DverZad, 1);
  but_c = 2; 
@@ -224,9 +195,7 @@ void centerzamok(){
  Serial.println("Функция центрально замка деактивирована"),
  digitalWrite(DverZad, 0); 
  but_c = 1;
- break; 
- }
-}
+ break; }}
 //--------------------------------------------------КЛИМАТ КОНТРОЛЬ------------------— 
 void klimat(void){
   byte i;
@@ -234,116 +203,63 @@ void klimat(void){
   byte type_s;
   byte data[12];
   byte addr[8];
-  float celsius, fahrenheit;
-
+  float celsius;
   if ( !ds.search(addr)) {
-    Serial.println("No more addresses.");
-    Serial.println();
-    ds.reset_search();
-    delay(250);
-    return;
-  }
-
+    Serial.println("Нет больше адресов");
+    Serial.println(); ds.reset_search(); delay(250);
+    return; }
   Serial.print("ROM =");
   for( i = 0; i < 8; i++) {
     Serial.write(' ');
-    Serial.print(addr[i], HEX);
-  }
-
+    Serial.print(addr[i], HEX); }
   if (OneWire::crc8(addr, 7) != addr[7]) {
       Serial.println("CRC is not valid!");
-      return;
-  }
+      return; }
   Serial.println();
-
-  // the first ROM byte indicates which chip
-  switch (addr[0]) {
-    case 0x10:
-      Serial.println("  Chip = DS18S20");  // or old DS1820
-      type_s = 1;
-      break;
-    case 0x28:
-      Serial.println("  Chip = DS18B20");
-      type_s = 0;
-      break;
-    case 0x22:
-      Serial.println("  Chip = DS1822");
-      type_s = 0;
-      break;
-    default:
-      Serial.println("Device is not a DS18x20 family device.");
-      return;
-  } 
-
-  ds.reset();
-  ds.select(addr);
-  ds.write(0x44, 1);        // start conversion, with parasite power on at the end
-
-  delay(1000);     // maybe 750ms is enough, maybe not
-
+  switch (addr[0]) { // Определяем модель датчика температуры 
+    case 0x28: Serial.println("  Chip = DS18B20"); type_s = 0; break; // выводим название датчика Chip = DS18B20 - мой датчик 
+    case 0x10: Serial.println("  Chip = DS18S20"); type_s = 1; break; // выводим название датчика Chip = DS18S20 или старые модели 
+    case 0x22: Serial.println("  Chip = DS1822"); type_s = 0; break;  // выводим название датчика Chip = DS1822
+    default: Serial.println("Датчик не из семейства DS18x20.");// Если датчик не относится к семейству DS18x20
+      return; } 
+  ds.reset();ds.select(addr); ds.write(0x44, 1);        // start conversion, with parasite power on at the end
+  delay(1000);     // не ставить задержку меньше 750
   present = ds.reset();
   ds.select(addr);
-  ds.write(0xBE);         // Read Scratchpad
-
+  ds.write(0xBE);         // Чтение адреса 
   Serial.print("  Data = ");
   Serial.print(present, HEX);
   Serial.print(" ");
   for ( i = 0; i < 9; i++) {           // we need 9 bytes
     data[i] = ds.read();
-    Serial.print(data[i], HEX);
-    Serial.print(" ");
-  }
-  Serial.print(" CRC=");
-  Serial.print(OneWire::crc8(data, 8), HEX);
-  Serial.println();
+    Serial.print(data[i], HEX); Serial.print(" "); } Serial.print(" CRC="); Serial.print(OneWire::crc8(data, 8), HEX); Serial.println();
   int16_t raw = (data[1] << 8) | data[0];
   if (type_s) {
     raw = raw << 3; // 9 bit resolution default
     if (data[7] == 0x10) {
-      raw = (raw & 0xFFF0) + 12 - data[6];
-    }
-  } else {
+      raw = (raw & 0xFFF0) + 12 - data[6];}} 
+      else {
     byte cfg = (data[4] & 0x60);
     if (cfg == 0x00) raw = raw & ~7;  // 9 bit resolution, 93.75 ms
     else if (cfg == 0x20) raw = raw & ~3; // 10 bit res, 187.5 ms
-    else if (cfg == 0x40) raw = raw & ~1; // 11 bit res, 375 ms
-  }
+    else if (cfg == 0x40) raw = raw & ~1; } // 11 bit res, 375 ms
   celsius = (float)raw / 16.0;
-  fahrenheit = celsius * 1.8 + 32.0;
-  Serial.print("  Temperature = ");
-  Serial.print(celsius);
-  Serial.print(" Celsius, ");
-  Serial.print(fahrenheit);
-  Serial.println(" Fahrenheit");
-}
+  Serial.print("  Температура = "); Serial.print(celsius);Serial.print(" C.");}
 //--------------------------------------------------------БАГАЖНИК------------------— 
  void bag(){
     digitalWrite(bug,1);
-    servo.write(100); //ставим вал под 0
+    servo.write(100); //ставим вал под 100
     Serial.println("Замок открыт");
     delay(5000);
     digitalWrite(bug,0);
-    servo.write(0); //ставим вал под 0
-  }
+    servo.write(0); }//ставим вал под 0
  //--------------------------------------------------------ГАБАРИТЫ---------------------------------— 
 void gabar(){
 switch(but_g) {
-  case 1:
- but_g = 2;  
-digitalWrite(gab, 1); 
-break;
- case 2:
- but_g = 1;  
-digitalWrite(gab, 0); 
-break;
-}
-}
+  case 1: but_g = 2; digitalWrite(gab, 1); break;
+  case 2: but_g = 1;  digitalWrite(gab, 0); break;}}
 //--------------------------------------------------------АВАРИЙКА---------------------------------— 
 void avar_on(){ 
   int i = 0;
   for (int i=0; i <= 10; i++){
-digitalWrite(13,1);
-  delay(1000);
-  digitalWrite(13,0);
-    delay(1000);}
-}
+digitalWrite(13,1); delay(1000); digitalWrite(13,0); delay(1000);}}
